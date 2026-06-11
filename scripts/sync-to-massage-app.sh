@@ -21,7 +21,7 @@ FEATURE="$DST/app/developer/anatomy"
 # Viewer core (components except the project-local ui kit, store, data+catalogs)
 rsync -a --delete --exclude 'ui/' "$SRC/src/components/" "$FEATURE/components/"
 rsync -a --delete "$SRC/src/store/" "$FEATURE/store/"
-rsync -a --delete "$SRC/src/data/" "$FEATURE/data/"
+rsync -a --delete --exclude '*.backup.*' "$SRC/src/data/" "$FEATURE/data/"
 
 # Assets: the 9 system GLBs referenced by the catalog + the self-hosted Draco decoder
 mkdir -p "$DST/public/models" "$DST/public/draco"
