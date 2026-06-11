@@ -5,13 +5,13 @@ import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
 import type { ThreeEvent } from '@react-three/fiber';
 import { StructureModel } from './StructureModel';
-import { useViewerStore } from '@/store/useViewerStore';
-import { SYSTEMS, SYSTEM_BY_ID } from '@/data/catalog';
+import { useViewerStore } from '../store/useViewerStore';
+import { DRACO_DECODER_PATH, SYSTEMS, SYSTEM_BY_ID } from '../data/catalog';
 
 const TARGET_HEIGHT = 2.0; // world units the whole figure should span vertically
 const SKELETAL = SYSTEM_BY_ID.get('skeletal')!;
 
-useGLTF.preload(SKELETAL.model);
+useGLTF.preload(SKELETAL.model, DRACO_DECODER_PATH);
 
 /**
  * Holds every visible system layer under ONE shared transform so the layers stay
@@ -19,7 +19,7 @@ useGLTF.preload(SKELETAL.model);
  * is derived from the skeleton (always loaded), so it stays stable as layers toggle.
  */
 export function Anatomy() {
-  const { scene: skeleton } = useGLTF(SKELETAL.model); // fit reference — always loaded
+  const { scene: skeleton } = useGLTF(SKELETAL.model, DRACO_DECODER_PATH); // fit reference — always loaded
   const visibleLayers = useViewerStore((s) => s.visibleLayers);
   const selectStructure = useViewerStore((s) => s.selectStructure);
   const setHoveredId = useViewerStore((s) => s.setHoveredId);

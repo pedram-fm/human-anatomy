@@ -1,9 +1,11 @@
 'use client';
 
+/* eslint-disable react-hooks/immutability -- the camera-controls instance is mutated
+   imperatively from useFrame/effect callbacks (the standard R3F pattern), never during render. */
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { useThree, useFrame } from '@react-three/fiber';
-import { useViewerStore } from '@/store/useViewerStore';
+import { useViewerStore } from '../store/useViewerStore';
 
 // camera-controls instance — only the bits we use.
 interface Controls {
@@ -13,6 +15,7 @@ interface Controls {
     opts?: { paddingTop?: number; paddingLeft?: number; paddingBottom?: number; paddingRight?: number },
   ) => void;
   rotateTo: (azimuth: number, polar: number, enableTransition: boolean) => void;
+  getDistanceToFitBox: (width: number, height: number, depth: number) => number;
   minDistance: number;
   maxDistance: number;
   distance: number;
@@ -63,14 +66,17 @@ export function CameraController() {
     if (!controls) return false;
     const box = worldBox();
     if (!box) return false;
-    const pad = box.getSize(new THREE.Vector3()).y * 0.07; // ~7% breathing room top/bottom
+    const dims = box.getSize(new THREE.Vector3());
+    const pad = dims.y * 0.07; // ~7% breathing room top/bottom
     controls.minDistance = 0.02; // allow deep zoom-in for tiny structures
     controls.maxDistance = Infinity; // temporarily, so fit isn't clamped
     controls.fitToBox(box, transition, {
       paddingTop: pad, paddingBottom: pad, paddingLeft: pad, paddingRight: pad,
     });
-    // cap zoom-out to ~just beyond the full-body framing distance
-    controls.maxDistance = controls.distance * 1.1;
+    // Cap zoom-out to ~just beyond the full-body framing. Derive it from the box —
+    // controls.distance lags fitToBox, and reading it here left a stale clamp that
+    // wedged the camera after viewport changes (fullscreen enter/exit, rotation).
+    controls.maxDistance = controls.getDistanceToFitBox(dims.x, dims.y, dims.z) * 1.25;
     return true;
   };
 
@@ -101,9 +107,12 @@ export function CameraController() {
     if (resetNonce > 0) { pendingFocus.current = false; pendingFrameAll.current = true; tries.current = 0; }
   }, [resetNonce]);
 
-  // keep the full figure framed when the viewport changes (e.g. phone rotation, resize)
+  // keep the view framed when the viewport changes (fullscreen toggle, rotation, resize):
+  // re-frame the selection if there is one, otherwise the full figure
   useEffect(() => {
-    if (!selectedId) { pendingFrameAll.current = true; tries.current = 0; }
+    if (selectedId) pendingFocus.current = true;
+    else pendingFrameAll.current = true;
+    tries.current = 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size.width, size.height]);
 

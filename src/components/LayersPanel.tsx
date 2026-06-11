@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { Eye, EyeOff, Layers, ScanLine, Crosshair, ChevronDown } from 'lucide-react';
-import { useViewerStore } from '@/store/useViewerStore';
-import { SYSTEMS } from '@/data/catalog';
+import { useViewerStore } from '../store/useViewerStore';
+import { SYSTEMS } from '../data/catalog';
 
 export function LayersPanel() {
   const [open, setOpen] = useState(true);
+  // One-time mount sync with the viewport width; window is unavailable during SSR,
+  // so a state initializer can't do this.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setOpen(window.matchMedia('(min-width: 768px)').matches); }, []);
 
   const visibleLayers = useViewerStore((s) => s.visibleLayers);
@@ -20,10 +23,14 @@ export function LayersPanel() {
   const selectedId = useViewerStore((s) => s.selectedId);
 
   return (
-    <div className="absolute top-4 right-4 w-52 max-h-[80vh] overflow-y-auto rounded-lg border bg-background/90 backdrop-blur shadow-lg p-2.5 text-sm z-20">
+    <div
+      className={`absolute top-4 right-4 max-h-[85%] overflow-y-auto rounded-lg border bg-background/90 backdrop-blur shadow-lg p-2.5 text-sm ${
+        open ? 'w-52 z-30' : 'w-auto z-20'
+      }`}
+    >
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-2 font-semibold mb-1"
+        className={`w-full flex items-center gap-2 font-semibold ${open ? 'mb-1' : ''}`}
       >
         <Layers className="h-4 w-4" /> Layers
         <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${open ? '' : '-rotate-90'}`} />

@@ -3,10 +3,10 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
-import { useViewerStore } from '@/store/useViewerStore';
+import { useViewerStore } from '../store/useViewerStore';
 import {
-  byId, resolveStructureId, isDepthVisible, type SystemId, type Depth,
-} from '@/data/catalog';
+  DRACO_DECODER_PATH, byId, resolveStructureId, isDepthVisible, type SystemId, type Depth,
+} from '../data/catalog';
 
 /**
  * One anatomical system layer (e.g. skeletal, muscular) loaded from its GLB.
@@ -23,7 +23,7 @@ export function StructureModel({
   system: SystemId;
   baseColor: string;
 }) {
-  const { scene } = useGLTF(url);
+  const { scene } = useGLTF(url, DRACO_DECODER_PATH);
 
   const selectedId = useViewerStore((s) => s.selectedId);
   const hoveredId = useViewerStore((s) => s.hoveredId);

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { byId, SYSTEMS, type SystemId } from '@/data/catalog';
+import { byId, SYSTEMS, type SystemId } from '../data/catalog';
 
 const INITIAL_LAYERS = Object.fromEntries(
   SYSTEMS.map((s) => [s.id, s.defaultOn]),

@@ -1,31 +1,48 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { CameraControls, ContactShadows } from '@react-three/drei';
-import { RotateCcw, List, X } from 'lucide-react';
+import { RotateCcw, List, X, Maximize, Minimize } from 'lucide-react';
 import { Anatomy } from './Anatomy';
 import { CameraController } from './CameraController';
 import { Sidebar } from './Sidebar';
 import { LayersPanel } from './LayersPanel';
 import { Button } from '@/components/ui/button';
-import { useViewerStore } from '@/store/useViewerStore';
+import { useViewerStore } from '../store/useViewerStore';
 
-function CameraToolbar() {
+function CameraToolbar({
+  isFullscreen,
+  onToggleFullscreen,
+}: {
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
+}) {
   const resetView = useViewerStore((s) => s.resetView);
   const setView = useViewerStore((s) => s.setView);
   const views = ['front', 'back', 'left', 'right'] as const;
   return (
     <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
-      <Button variant="secondary" size="sm" className="gap-2 shadow-md" onClick={resetView}>
-        <RotateCcw className="h-4 w-4" /> Fit body
-      </Button>
+      <div className="flex gap-2">
+        <Button variant="secondary" size="sm" className="gap-2 shadow-md" onClick={resetView}>
+          <RotateCcw className="h-4 w-4" /> Fit body
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon"
+          className="h-8 w-8 shadow-md"
+          onClick={onToggleFullscreen}
+          title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+        >
+          {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+        </Button>
+      </div>
       <div className="flex gap-1 rounded-md border bg-background/90 backdrop-blur p-1 shadow-md">
         {views.map((v) => (
           <button
             key={v}
             onClick={() => setView(v)}
-            className="px-2 py-1 text-xs rounded hover:bg-accent capitalize"
+            className="px-1.5 sm:px-2 py-1 text-xs rounded hover:bg-accent capitalize"
           >
             {v}
           </button>
@@ -37,9 +54,58 @@ function CameraToolbar() {
 
 export function Viewer() {
   const [panelOpen, setPanelOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Fullscreen: prefer the native API; iPhone Safari has no element fullscreen,
+  // so fall back to an emulated fixed-overlay mode.
+  const [nativeFullscreen, setNativeFullscreen] = useState(false);
+  const [fakeFullscreen, setFakeFullscreen] = useState(false);
+  const isFullscreen = nativeFullscreen || fakeFullscreen;
+
+  useEffect(() => {
+    const onChange = () => setNativeFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!fakeFullscreen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden'; // lock page scroll behind the overlay
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFakeFullscreen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [fakeFullscreen]);
+
+  const toggleFullscreen = () => {
+    const el = rootRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+    } else if (fakeFullscreen) {
+      setFakeFullscreen(false);
+    } else if (el.requestFullscreen) {
+      el.requestFullscreen().catch(() => setFakeFullscreen(true));
+    } else {
+      setFakeFullscreen(true);
+    }
+  };
 
   return (
-    <div className="flex h-[100dvh] w-full overflow-hidden bg-zinc-950 text-foreground">
+    <div
+      ref={rootRef}
+      className={`flex h-full w-full overflow-hidden bg-zinc-950 text-foreground ${
+        // `relative` keeps absolutely-positioned children (the structures drawer) anchored
+        // to the viewer box; without it they escape to the page viewport and shift around
+        // when fullscreen toggles the root between positioned and static.
+        fakeFullscreen ? 'fixed inset-0 z-[100]' : 'relative'
+      }`}
+    >
       {/* 3D Viewport */}
       <div className="relative flex-1 cursor-grab active:cursor-grabbing">
         <Canvas
@@ -65,7 +131,7 @@ export function Viewer() {
           <CameraController />
         </Canvas>
 
-        <CameraToolbar />
+        <CameraToolbar isFullscreen={isFullscreen} onToggleFullscreen={toggleFullscreen} />
         <LayersPanel />
 
         {/* mobile: open structure list */}
@@ -97,14 +163,16 @@ export function Viewer() {
           md:static md:z-10 md:max-w-none md:translate-x-0
           ${panelOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}`}
       >
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-3 -left-12 h-9 w-9 rounded-full bg-background/90 shadow md:hidden"
-          onClick={() => setPanelOpen(false)}
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        {panelOpen && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-3 -left-12 h-9 w-9 rounded-full bg-background/90 shadow md:hidden"
+            onClick={() => setPanelOpen(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
         <Sidebar />
       </div>
     </div>

@@ -55,6 +55,9 @@ export const SYSTEMS: SystemDef[] = [
 
 export const SYSTEM_BY_ID = new Map(SYSTEMS.map((s) => [s.id, s]));
 
+// Draco decoder is self-hosted under public/draco/ — no runtime CDN dependency.
+export const DRACO_DECODER_PATH = '/draco/';
+
 export const structures: Structure[] = [
   ...(skeletalRaw as Structure[]),
   ...(muscularRaw as Structure[]),

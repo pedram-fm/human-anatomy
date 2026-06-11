@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useViewerStore } from '@/store/useViewerStore';
-import { structures, byId, SYSTEMS, type Structure } from '@/data/catalog';
+import { useViewerStore } from '../store/useViewerStore';
+import { structures, byId, SYSTEMS, type Structure } from '../data/catalog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
